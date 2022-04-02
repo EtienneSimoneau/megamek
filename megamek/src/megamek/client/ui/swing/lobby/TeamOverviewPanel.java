@@ -39,7 +39,7 @@ import java.util.Vector;
 
 import static megamek.client.ui.swing.util.UIUtil.*;
 
-/** 
+/**
  * A JPanel that holds a table giving an overview of the current relative strength
  * of the teams of the game. The table does not listen to game changes and requires
  * being notified through {@link #refreshData()}. It accesses data through the stored
@@ -48,8 +48,9 @@ import static megamek.client.ui.swing.util.UIUtil.*;
 public class TeamOverviewPanel extends JPanel {
 
     private static final long serialVersionUID = -4754010220963493049L;
-     
-    private enum TOMCOLS { TEAM, MEMBERS, TONNAGE, COST, BV, HIDDEN, UNITS }
+
+    private enum TOMCOLS {TEAM, MEMBERS, TONNAGE, COST, BV, HIDDEN, UNITS, ELO}
+
     private final TeamOverviewModel teamOverviewModel = new TeamOverviewModel();
     private final JTable teamOverviewTable = new JTable(teamOverviewModel);
     private final TableColumnManager teamOverviewManager = new TableColumnManager(teamOverviewTable, false);
@@ -57,8 +58,10 @@ public class TeamOverviewPanel extends JPanel {
     private final ClientGUI clientGui;
     private boolean isDetached;
     private int shownColumn;
-    
-    /** Constructs the team overview panel; the given ClientGUI is used to access the game data. */ 
+
+    /**
+     * Constructs the team overview panel; the given ClientGUI is used to access the game data.
+     */
     public TeamOverviewPanel(ClientGUI cg) {
         clientGui = cg;
         setLayout(new GridLayout(1, 1));
@@ -75,14 +78,17 @@ public class TeamOverviewPanel extends JPanel {
         colModel.getColumn(TOMCOLS.BV.ordinal()).setCellRenderer(centerRenderer);
         colModel.getColumn(TOMCOLS.TEAM.ordinal()).setCellRenderer(centerRenderer);
         colModel.getColumn(TOMCOLS.HIDDEN.ordinal()).setCellRenderer(centerRenderer);
+        colModel.getColumn(TOMCOLS.ELO.ordinal()).setCellRenderer(centerRenderer);
         scrTeams.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         add(scrTeams);
-        
+
         adaptToGUIScale();
         refreshData();
     }
-    
-    /** Detaches or attaches the team overview from/to its pane. */
+
+    /**
+     * Detaches or attaches the team overview from/to its pane.
+     */
     public void setDetached(boolean state) {
         if (state != isDetached) {
             isDetached = state;
@@ -101,7 +107,7 @@ public class TeamOverviewPanel extends JPanel {
             refreshTableHeader();
         }
     }
-    
+
     MouseListener headerListener = new MouseAdapter() {
         @Override
         public void mouseReleased(MouseEvent e) {
@@ -123,14 +129,18 @@ public class TeamOverviewPanel extends JPanel {
             }
         }
     };
-    
-    /** Adapts the row heights and headers to the current GUI scaling. */
+
+    /**
+     * Adapts the row heights and headers to the current GUI scaling.
+     */
     public void adaptToGUIScale() {
         teamOverviewModel.updateRowHeights();
         refreshTableHeader();
     }
 
-    /** Refreshes the headers, setting the header names and gui scaling them. */
+    /**
+     * Refreshes the headers, setting the header names and gui scaling them.
+     */
     public void refreshTableHeader() {
         JTableHeader header = teamOverviewTable.getTableHeader();
         for (int i = 0; i < teamOverviewTable.getColumnCount(); i++) {
@@ -140,7 +150,9 @@ public class TeamOverviewPanel extends JPanel {
         header.repaint();
     }
 
-    /** Updates the table with data from the game. */
+    /**
+     * Updates the table with data from the game.
+     */
     public void refreshData() {
         // Remeber the previously selected team, if any
         int selectedRow = teamOverviewTable.getSelectedRow();
@@ -148,10 +160,10 @@ public class TeamOverviewPanel extends JPanel {
         if (selectedRow != -1) {
             selectedTeam = teamOverviewModel.teamID.get(teamOverviewTable.getSelectedRow());
         }
-        
+
         // Update the data
         teamOverviewModel.updateTable(clientGui.getClient().getGame());
-        
+
         // Re-select the previously selected team, if possible
         if ((selectedRow != -1) && (teamOverviewModel.teamID.contains(selectedTeam))) {
             int row = teamOverviewModel.teamID.indexOf(selectedTeam);
@@ -159,7 +171,9 @@ public class TeamOverviewPanel extends JPanel {
         }
     }
 
-    /** The table model for the Team overview panel */
+    /**
+     * The table model for the Team overview panel
+     */
     private class TeamOverviewModel extends AbstractTableModel {
         private static final long serialVersionUID = 2747614890129092912L;
 
@@ -171,6 +185,7 @@ public class TeamOverviewPanel extends JPanel {
         private ArrayList<Long> tons = new ArrayList<>();
         private ArrayList<String> units = new ArrayList<>();
         private ArrayList<Double> hidden = new ArrayList<>();
+        private ArrayList<Integer> elos = new ArrayList<>();
 
         @Override
         public int getRowCount() {
@@ -186,6 +201,7 @@ public class TeamOverviewPanel extends JPanel {
             tons.clear();
             units.clear();
             hidden.clear();
+            elos.clear();
         }
 
         @Override
@@ -193,26 +209,32 @@ public class TeamOverviewPanel extends JPanel {
             return TOMCOLS.values().length;
         }
 
-        /** Updates the stored data from the provided game. */
+        /**
+         * Updates the stored data from the provided game.
+         */
         public void updateTable(Game game) {
             clearData();
-            for (Team team: game.getTeamsVector()) {
+            for (Team team : game.getTeamsVector()) {
                 teams.add(team);
                 teamID.add(team.getId());
                 teamNames.add(team.toString());
-                
+
                 long cost = 0;
                 double ton = 0;
                 int bv = 0;
-                int[] unitCounts = { 0, 0, 0, 0, 0 };
+                int elo = 0;
+                int[] unitCounts = {0, 0, 0, 0, 0};
                 int hiddenBv = 0;
-                boolean[] unitCritical = { false, false, false, false, false };
-                boolean[] unitWarnings = { false, false, false, false, false };
-                for (Player teamMember: team.getPlayersVector()) {
+                boolean[] unitCritical = {false, false, false, false, false};
+                boolean[] unitWarnings = {false, false, false, false, false};
+                for (Player teamMember : team.getPlayersVector()) {
                     // Get the "real" player object, as the team's may be wrong
                     Player player = game.getPlayer(teamMember.getId());
                     bv += player.getBV();
-                    for (Entity entity: game.getPlayerEntities(player, false)) {
+                    elo += player.getElo();
+                    System.err.println("PLAYER ELO IS: " + player.getElo());
+
+                    for (Entity entity : game.getPlayerEntities(player, false)) {
                         // Avoid counting fighters in squadrons twice 
                         if (entity instanceof FighterSquadron) {
                             continue;
@@ -242,12 +264,13 @@ public class TeamOverviewPanel extends JPanel {
                 hidden.add(bv != 0 ? (double) hiddenBv / bv : 0);
                 costs.add(cost);
                 tons.add((long) (ton * 1000));
+                elos.add(elo);
             }
             teamOverviewTable.clearSelection();
             fireTableDataChanged();
             updateRowHeights();
         }
-        
+
         private int classIndex(Entity entity) {
             if (entity instanceof Mech) {
                 return 0;
@@ -261,27 +284,27 @@ public class TeamOverviewPanel extends JPanel {
                 return 4;
             }
         }
-        
+
         private String unitSummary(int[] counts, boolean[] criticals, boolean[] warnings) {
-            String result = ""; 
+            String result = "";
             for (int i = 0; i < counts.length; i++) {
                 if (counts[i] > 0) {
-                    result += criticals[i] ? criticalSign() + " ": "";
-                    result += warnings[i] ? warningSign() + " ": "";
+                    result += criticals[i] ? criticalSign() + " " : "";
+                    result += warnings[i] ? warningSign() + " " : "";
                     result += Messages.getString("ChatLounge.teamOverview.unitSum" + i) + " " + counts[i];
                     result += "<BR>";
                 }
-                
+
             }
             return result;
         }
-        
-        /** Finds and sets the required row height (max height of all cells plus margin). */
-        private void updateRowHeights()
-        {
+
+        /**
+         * Finds and sets the required row height (max height of all cells plus margin).
+         */
+        private void updateRowHeights() {
             int rowHeight = 0;
-            for (int row = 0; row < teamOverviewTable.getRowCount(); row++)
-            {
+            for (int row = 0; row < teamOverviewTable.getRowCount(); row++) {
                 for (int col = 0; col < teamOverviewTable.getColumnCount(); col++) {
                     // Consider the preferred height of the team members column
                     TableCellRenderer renderer = teamOverviewTable.getCellRenderer(row, col);
@@ -360,7 +383,14 @@ public class TeamOverviewPanel extends JPanel {
                 case HIDDEN:
                     result.append(guiScaledFontHTML(textSizeDelta) + "<CENTER>");
                     var percentage = hidden.get(row);
-                    result.append(percentage == 0 ? "--": NumberFormat.getPercentInstance().format(percentage));
+                    result.append(percentage == 0 ? "--" : NumberFormat.getPercentInstance().format(percentage));
+                    break;
+
+                case ELO:
+                    result.append(guiScaledFontHTML(textSizeDelta) + "<CENTER>");
+                    var elo = elos.get(row);
+                    result.append(elo == 0 ? "0" : elo.toString());
+                    break;
 
                 default:
                     break;
@@ -368,15 +398,15 @@ public class TeamOverviewPanel extends JPanel {
 
             return result.toString();
         }
-        
+
         private boolean seeTeam(int row) {
             Game game = clientGui.getClient().getGame();
             return !game.getOptions().booleanOption(OptionsConstants.BASE_REAL_BLIND_DROP)
                     || game.getTeamForPlayer(clientGui.getClient().getLocalPlayer()).getId() == teamID.get(row);
         }
-        
-        /** 
-         * Constructs and returns the string "(xx % of Team yy)". The provided values list 
+
+        /**
+         * Constructs and returns the string "(xx % of Team yy)". The provided values list
          * is the data for the table column and the provided row is the row of current value.
          * The reference value (that represents 100%) is taken from the selected row.
          * Returns an empty string if nothing is selected or the base value is 0.
@@ -400,19 +430,21 @@ public class TeamOverviewPanel extends JPanel {
         }
 
     }
-    
-    /** A specialized renderer for the mek table. */
+
+    /**
+     * A specialized renderer for the mek table.
+     */
     private class MemberListRenderer extends JPanel implements TableCellRenderer {
         private static final long serialVersionUID = 6379065972840999336L;
-        
+
         MemberListRenderer() {
             super();
             setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         }
 
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, 
-                boolean hasFocus, int row, int column) {
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                       boolean hasFocus, int row, int column) {
 
             if (!(value instanceof Vector<?>)) {
                 return null;
@@ -423,7 +455,7 @@ public class TeamOverviewPanel extends JPanel {
             int baseSize = FONT_SCALE1 - (isDetached ? 2 : 0);
             int size = scaleForGUI(2 * baseSize);
             Font font = new Font("Dialog", Font.PLAIN, scaleForGUI(baseSize));
-            for (Object obj: playerList) {
+            for (Object obj : playerList) {
                 if (!(obj instanceof Player)) {
                     continue;
                 }
@@ -437,7 +469,7 @@ public class TeamOverviewPanel extends JPanel {
                 add(lblPlayer);
             }
             add(Box.createVerticalGlue());
-            
+
             if (isSelected) {
                 setForeground(table.getSelectionForeground());
                 setBackground(table.getSelectionBackground());

@@ -111,6 +111,8 @@ public class Server implements Runnable {
     // server setup
     private String password;
 
+    private EloManager eloManager = new EloManager();
+
     private final String metaServerUrl;
 
     private ServerSocket serverSocket;
@@ -856,7 +858,8 @@ public class Server implements Runnable {
 
         // add and validate the player info
         if (!returning) {
-            addNewPlayer(connId, name, isBot);
+            Player bot = addNewPlayer(connId, name, isBot);
+            eloManager.addPlayer(bot);
         }
 
         // if it is not the lounge phase, this player becomes an observer
@@ -885,6 +888,8 @@ public class Server implements Runnable {
                     .getLocalHost().getHostName());
             for (InetAddress address : addresses) {
                 LogManager.getLogger().info("s: machine IP " + address.getHostAddress());
+                player.setIp(address.getHostAddress());
+
                 if (showIPAddressesInChat) {
                     sendServerChat(connId,
                             "Machine IP is " + address.getHostAddress());
@@ -910,9 +915,7 @@ public class Server implements Runnable {
             if (showIPAddressesInChat) {
                 sendServerChat(who);
             }
-
         } // Found the player
-
     }
 
     /**
@@ -1411,6 +1414,7 @@ public class Server implements Runnable {
             String name = idToNameMap.get(conn.getId());
             conn.setId(newId);
             Player newPlayer = addNewPlayer(newId, name, false);
+            eloManager.addPlayer(newPlayer);
             newPlayer.setObserver(true);
             connectionIds.put(newId,  conn);
             send(newId, new Packet(Packet.COMMAND_LOCAL_PN, newId));

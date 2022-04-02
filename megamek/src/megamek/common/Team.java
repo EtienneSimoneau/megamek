@@ -199,6 +199,14 @@ public final class Team extends TurnOrdered {
         return sum;
     }
 
+    public int getTeamAvgElo() {
+        int sum = 0;
+        for (Player player : players) {
+            sum += player.getElo();
+        }
+        return sum / players.size();
+    }
+
     @Override
     public int getWarshipTurns() {
         // Sum the other turns of all Players in this Team.

@@ -44,6 +44,9 @@ public final class Player extends TurnOrdered {
 
     private int team = TEAM_NONE;
 
+    private String ip;
+    private Integer elo;
+
     private boolean done = false; // done with phase
     private boolean ghost = false; // disconnected player
     private boolean bot = false;
@@ -167,6 +170,14 @@ public final class Player extends TurnOrdered {
     public int getNbrMFInferno() {
         return numMfInferno;
     }
+
+    public void setElo(Integer elo) { this.elo = elo; }
+
+    public Integer getElo() { return elo; }
+
+    public void setIp(String ip) { this.ip = ip; }
+
+    public String getIp() { return ip; }
 
     public Camouflage getCamouflage() {
         return camouflage;
