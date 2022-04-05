@@ -22,6 +22,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import megamek.services.ValidationService;
 
 import javax.swing.*;
 
@@ -87,7 +88,7 @@ public class ConnectDialog extends AbstractGameConnectionDialog {
     @Override
     public boolean dataValidation(String errorTitleKey) {
         try {
-            setServerAddress(Server.validateServerAddress(getServerAddress()));
+            setServerAddress(ValidationService.validateServerAddress(getServerAddress()));
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(getOwner(), Messages.getString("MegaMek.ServerAddressError"),
                     Messages.getString(errorTitleKey), JOptionPane.ERROR_MESSAGE);
