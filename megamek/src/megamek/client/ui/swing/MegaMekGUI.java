@@ -18,6 +18,7 @@ package megamek.client.ui.swing;
 
 import com.thoughtworks.xstream.XStream;
 import megamek.MegaMek;
+import megamek.services.ValidationService;
 import megamek.MMConstants;
 import megamek.client.Client;
 import megamek.client.bot.BotClient;
@@ -416,8 +417,8 @@ public class MegaMekGUI implements IPreferenceChangeListener {
                             String mailPropertiesFileName, File saveGameFile) {
 
         try {
-            serverPassword = Server.validatePassword(serverPassword);
-            port = Server.validatePort(port);
+            serverPassword = ValidationService.validatePassword(serverPassword);
+            port = ValidationService.validatePort(port);
         } catch (Exception ex) {
             LogManager.getLogger().error("Failed to start Server", ex);
             frame.setVisible(true);
@@ -480,9 +481,9 @@ public class MegaMekGUI implements IPreferenceChangeListener {
 
     public void startClient(String playerName, String serverAddress, int port) {
         try {
-            playerName = Server.validatePlayerName(playerName);
-            serverAddress = Server.validateServerAddress(serverAddress);
-            port = Server.validatePort(port);
+            playerName = ValidationService.validatePlayerName(playerName);
+            serverAddress = ValidationService.validateServerAddress(serverAddress);
+            port = ValidationService.validatePort(port);
         } catch (Exception ex) {
             LogManager.getLogger().error("Failed to start client", ex);
             JOptionPane.showMessageDialog(frame,

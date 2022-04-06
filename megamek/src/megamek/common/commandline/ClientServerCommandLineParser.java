@@ -21,6 +21,7 @@ import megamek.common.Configuration;
 import megamek.common.annotations.Nullable;
 import megamek.common.preference.PreferenceManager;
 import megamek.server.Server;
+import megamek.services.ValidationService;
 import org.apache.logging.log4j.LogManager;
 
 import java.io.File;
@@ -196,7 +197,7 @@ public class ClientServerCommandLineParser extends AbstractCommandLineParser {
                         "port number must be a number. '%s' is not valid\n%s",
                         getTokenValue(), ex.getMessage()));
             }
-            port = Server.validatePort(newPort);
+            port = ValidationService.validatePort(newPort);
         } else {
             throw new ParseException("port number expected");
         }
@@ -212,7 +213,7 @@ public class ClientServerCommandLineParser extends AbstractCommandLineParser {
 
     private void parsePassword() throws ParseException {
         if (getTokenType() == TOK_LITERAL) {
-            password = Server.validatePassword(getTokenValue());
+            password = ValidationService.validatePassword(getTokenValue());
         } else {
             throw new ParseException("password expected");
         }
@@ -228,7 +229,7 @@ public class ClientServerCommandLineParser extends AbstractCommandLineParser {
 
     private void parsePlayerName() throws ParseException {
         if (getTokenType() == TOK_LITERAL) {
-            playerName = Server.validatePlayerName(getTokenValue());
+            playerName = ValidationService.validatePlayerName(getTokenValue());
         } else {
             throw new ParseException("playerName expected");
         }
@@ -236,7 +237,7 @@ public class ClientServerCommandLineParser extends AbstractCommandLineParser {
 
     private void parseServerAddress() throws ParseException {
         if (getTokenType() == TOK_LITERAL) {
-            serverAddress = Server.validateServerAddress(getTokenValue());
+            serverAddress = ValidationService.validateServerAddress(getTokenValue());
         } else {
             throw new ParseException("host name or url expected");
         }

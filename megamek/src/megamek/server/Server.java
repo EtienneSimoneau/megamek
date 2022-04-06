@@ -307,71 +307,6 @@ public class Server implements Runnable {
 
     };
 
-    /**
-     *
-     * @param serverAddress
-     * @return valid hostName
-     * @throws AbstractCommandLineParser.ParseException for null or empty serverAddress
-     */
-    public static String validateServerAddress(String serverAddress) throws AbstractCommandLineParser.ParseException {
-        if ((serverAddress == null) || serverAddress.isBlank()) {
-            String msg = String.format("serverAddress must not be null or empty");
-            LogManager.getLogger().error(msg);
-            throw new AbstractCommandLineParser.ParseException(msg);
-        }
-        return serverAddress.trim();
-    }
-
-    /**
-     *
-     * @param playerName throw ParseException if null or empty
-     * @return valid playerName
-     */
-    public static String validatePlayerName(String playerName) throws AbstractCommandLineParser.ParseException {
-        if (playerName == null) {
-            String msg = String.format("playerName must not be null");
-            LogManager.getLogger().error(msg);
-            throw new AbstractCommandLineParser.ParseException(msg);
-        }
-
-        if (playerName.isBlank()) {
-            String msg = String.format("playerName must not be empty string");
-            LogManager.getLogger().error(msg);
-            throw new AbstractCommandLineParser.ParseException(msg);
-        }
-
-        return playerName.trim();
-    }
-
-    /**
-     *
-     * @param password
-     * @return valid password or null if no password or password is blank string
-     */
-    @Nullable
-    public static String validatePassword(@Nullable String password) {
-        if ((password == null) || password.isBlank()) return null;
-        return password.trim();
-    }
-
-    /**
-     *
-     * @param port if 0 or less, will return default, if illegal number, throws ParseException
-     * @return valid port number
-     */
-    public static int validatePort(int port) throws AbstractCommandLineParser.ParseException {
-        if (port <= 0) {
-            return MMConstants.DEFAULT_PORT;
-        }
-
-        if ((port < MMConstants.MIN_PORT) || (port > MMConstants.MAX_PORT)) {
-            String msg = String.format("Port number %d outside allowed range %d-%d", port, MMConstants.MIN_PORT, MMConstants.MAX_PORT);
-            LogManager.getLogger().error(msg);
-            throw new AbstractCommandLineParser.ParseException(msg);
-
-        }
-        return port;
-    }
 
     /**
      * Used to ensure only one thread at a time is accessing this particular
@@ -445,7 +380,53 @@ public class Server implements Runnable {
         }
 
         LogManager.getLogger().info("s: password = " + this.password);
+        // register commands
+        registerCommands();
 
+        // register terrain processors
+        addToTerrainProcessors();
+
+        packetPump = new PacketPump();
+        packetPumpThread = new Thread(packetPump, "Packet Pump");
+        packetPumpThread.start();
+
+        addRegistrationWithServerBrowser(registerWithServerBrowser, metaServerUrl);
+
+        // Fully initialised, now accept connections
+        connector = new Thread(this, "Connection Listener");
+        connector.start();
+
+        serverInstance = this;
+    }
+
+    private void addRegistrationWithServerBrowser(boolean registerWithServerBrowser, @Nullable String metaServerUrl) {
+        if (registerWithServerBrowser) {
+            if ( (metaServerUrl != null) && (!metaServerUrl.isBlank())) {
+                final TimerTask register = new TimerTask() {
+                    @Override
+                    public void run() {
+                        registerWithServerBrowser(true, Server.getServerInstance().metaServerUrl);
+                    }
+                };
+                serverBrowserUpdateTimer = new Timer("Server Browser Register Timer", true);
+                serverBrowserUpdateTimer.schedule(register, 1, 40000);
+            } else {
+                LogManager.getLogger().error("Invalid URL for server browser " + this.metaServerUrl);
+            }
+        }
+    }
+
+    private void addToTerrainProcessors() {
+        terrainProcessors.add(new FireProcessor(this));
+        terrainProcessors.add(new SmokeProcessor(this));
+        terrainProcessors.add(new GeyserProcessor(this));
+        terrainProcessors.add(new ElevatorProcessor(this));
+        terrainProcessors.add(new ScreenProcessor(this));
+        terrainProcessors.add(new WeatherProcessor(this));
+        terrainProcessors.add(new QuicksandProcessor(this));
+    }
+
+    private void registerCommands() {
         // register commands
         registerCommand(new DefeatCommand(this));
         registerCommand(new ExportListCommand(this));
@@ -477,40 +458,6 @@ public class Server implements Runnable {
         registerCommand(new AssignNovaNetServerCommand(this));
         registerCommand(new AllowTeamChangeCommand(this));
         registerCommand(new JoinTeamCommand(this));
-
-        // register terrain processors
-        terrainProcessors.add(new FireProcessor(this));
-        terrainProcessors.add(new SmokeProcessor(this));
-        terrainProcessors.add(new GeyserProcessor(this));
-        terrainProcessors.add(new ElevatorProcessor(this));
-        terrainProcessors.add(new ScreenProcessor(this));
-        terrainProcessors.add(new WeatherProcessor(this));
-        terrainProcessors.add(new QuicksandProcessor(this));
-
-        packetPump = new PacketPump();
-        packetPumpThread = new Thread(packetPump, "Packet Pump");
-        packetPumpThread.start();
-
-        if (registerWithServerBrowser) {
-            if ( (metaServerUrl != null) && (!metaServerUrl.isBlank())) {
-                final TimerTask register = new TimerTask() {
-                    @Override
-                    public void run() {
-                        registerWithServerBrowser(true, Server.getServerInstance().metaServerUrl);
-                    }
-                };
-                serverBrowserUpdateTimer = new Timer("Server Browser Register Timer", true);
-                serverBrowserUpdateTimer.schedule(register, 1, 40000);
-            } else {
-                LogManager.getLogger().error("Invalid URL for server browser " + this.metaServerUrl);
-            }
-        }
-
-        // Fully initialised, now accept connections
-        connector = new Thread(this, "Connection Listener");
-        connector.start();
-
-        serverInstance = this;
     }
 
     /**
