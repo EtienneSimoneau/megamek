@@ -396,7 +396,53 @@ public class Server implements Runnable {
         }
 
         LogManager.getLogger().info("s: password = " + this.password);
+        // register commands
+        registerCommands();
 
+        // register terrain processors
+        addToTerrainProcessors();
+
+        packetPump = new PacketPump();
+        packetPumpThread = new Thread(packetPump, "Packet Pump");
+        packetPumpThread.start();
+
+        addRegistrationWithServerBrowser(registerWithServerBrowser, metaServerUrl);
+
+        // Fully initialised, now accept connections
+        connector = new Thread(this, "Connection Listener");
+        connector.start();
+
+        serverInstance = this;
+    }
+
+    private void addRegistrationWithServerBrowser(boolean registerWithServerBrowser, @Nullable String metaServerUrl) {
+        if (registerWithServerBrowser) {
+            if ( (metaServerUrl != null) && (!metaServerUrl.isBlank())) {
+                final TimerTask register = new TimerTask() {
+                    @Override
+                    public void run() {
+                        registerWithServerBrowser(true, Server.getServerInstance().metaServerUrl);
+                    }
+                };
+                serverBrowserUpdateTimer = new Timer("Server Browser Register Timer", true);
+                serverBrowserUpdateTimer.schedule(register, 1, 40000);
+            } else {
+                LogManager.getLogger().error("Invalid URL for server browser " + this.metaServerUrl);
+            }
+        }
+    }
+
+    private void addToTerrainProcessors() {
+        terrainProcessors.add(new FireProcessor(this));
+        terrainProcessors.add(new SmokeProcessor(this));
+        terrainProcessors.add(new GeyserProcessor(this));
+        terrainProcessors.add(new ElevatorProcessor(this));
+        terrainProcessors.add(new ScreenProcessor(this));
+        terrainProcessors.add(new WeatherProcessor(this));
+        terrainProcessors.add(new QuicksandProcessor(this));
+    }
+
+    private void registerCommands() {
         // register commands
         registerCommand(new DefeatCommand(this));
         registerCommand(new ExportListCommand(this));
@@ -428,40 +474,6 @@ public class Server implements Runnable {
         registerCommand(new AssignNovaNetServerCommand(this));
         registerCommand(new AllowTeamChangeCommand(this));
         registerCommand(new JoinTeamCommand(this));
-
-        // register terrain processors
-        terrainProcessors.add(new FireProcessor(this));
-        terrainProcessors.add(new SmokeProcessor(this));
-        terrainProcessors.add(new GeyserProcessor(this));
-        terrainProcessors.add(new ElevatorProcessor(this));
-        terrainProcessors.add(new ScreenProcessor(this));
-        terrainProcessors.add(new WeatherProcessor(this));
-        terrainProcessors.add(new QuicksandProcessor(this));
-
-        packetPump = new PacketPump();
-        packetPumpThread = new Thread(packetPump, "Packet Pump");
-        packetPumpThread.start();
-
-        if (registerWithServerBrowser) {
-            if ( (metaServerUrl != null) && (!metaServerUrl.isBlank())) {
-                final TimerTask register = new TimerTask() {
-                    @Override
-                    public void run() {
-                        registerWithServerBrowser(true, Server.getServerInstance().metaServerUrl);
-                    }
-                };
-                serverBrowserUpdateTimer = new Timer("Server Browser Register Timer", true);
-                serverBrowserUpdateTimer.schedule(register, 1, 40000);
-            } else {
-                LogManager.getLogger().error("Invalid URL for server browser " + this.metaServerUrl);
-            }
-        }
-
-        // Fully initialised, now accept connections
-        connector = new Thread(this, "Connection Listener");
-        connector.start();
-
-        serverInstance = this;
     }
 
     /**
