@@ -4,6 +4,7 @@ import megamek.client.ui.swing.util.PlayerColour;
 import megamek.common.Game;
 import megamek.common.Player;
 import megamek.common.force.Forces;
+import megamek.common.net.Packet;
 import megamek.common.options.GameOptions;
 import megamek.server.Server;
 import org.junit.Test;
@@ -16,9 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Vector;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @RunWith(value = JUnit4.class)
 public class ServerTest {
@@ -138,6 +137,61 @@ public class ServerTest {
         assertSame(2, testServer2.getvPhaseReport().size());
     }
 
+    @Test
+    public void testGetGame() throws IOException {
+        Server testServer = new Server("test", 0);
+        Game testGame = createMockedGame();
+        Player player = new Player(0, "Colin");
+
+        testGame.addPlayer(player.getId(), player);
+        testServer.setGame(testGame);
+
+        assertEquals(testGame, testServer.getGame());
+    }
+
+    @Test
+    public void testGetPlayer() throws IOException {
+        Server testServer = new Server("test", 0);
+        Game testGame = createMockedGame();
+        Player player = new Player(0, "Colin");
+
+        testGame.addPlayer(player.getId(), player);
+        testServer.setGame(testGame);
+        assertEquals(testServer.getPlayer(0), testGame.getPlayer(0));
+    }
+
+
+    @Test
+    public void testIsPassworded() throws IOException{
+        Server testServer = new Server("test", 0);
+        Server testServer2 = new Server(null, 0);
+        assertTrue(testServer.isPassworded());
+        assertFalse(testServer2.isPassworded());
+    }
+
+
+    @Test
+    public void testIsPassword() throws IOException{
+        Server testServer = new Server("test", 0);
+        assertTrue(testServer.isPassword("test"));
+    }
+
+    @Test
+    public void testRequestTeamChange() throws IOException {
+        Server testServer = new Server("test", 0);
+        Game testGame = createMockedGame();
+        Player player = new Player(0, "Colin");
+
+        testServer.requestTeamChange(1, player);
+        assertEquals(testServer.getRequestedTeam(), 1);
+        assertTrue(testServer.isTeamChangeRequestInProgress());
+    }
+
+    @Test
+    public void testGetPort() throws IOException {
+        Server testServer = new Server("test", 8080);
+        assertEquals(testServer.getPort(), 8080);
+    }
 }
 
 

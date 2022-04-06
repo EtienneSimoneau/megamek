@@ -31088,7 +31088,7 @@ public class Server implements Runnable {
      * @param packet
      *            - the <code>Packet</code> to be processed.
      */
-    protected void handle(int connId, Packet packet) {
+    public void handle(int connId, Packet packet) {
         Player player = game.getPlayer(connId);
         // Check player. Please note, the connection may be pending.
         if ((null == player) && (null == getPendingConnection(connId))) {
